@@ -43,24 +43,24 @@ Commands below assume a POSIX shell. Package-manager installation commands are
 intentionally omitted: install Git, Node.js/npm, Pi, and cmux using the method
 appropriate for the machine.
 
-### Publication status: resolve before migrating
+### Published branches used by this guide
 
-This document currently describes the intended reproducible state, but these
-artifacts are not all published yet:
+The required changes are available on these remote branches:
 
-- The cmux-only `pi-interactive-subagents` implementation is still an
-  uncommitted local change. The current remote HEAD is tmux-only. Commit, push,
-  and record a cmux-capable tag or commit before using the Git package steps.
-- The You.com `pi-config` web search implementation exists in local commit
-  `cfb5248` on `feature/you-com-web-search`, while published `main` still uses
-  the prior Google search implementation. Push the desired implementation and
-  record its fetchable ref before migration.
-- The four profile-specific agent definitions are not yet versioned. Exact
-  reproduction requires publishing sanitized copies or deliberately accepting
-  the bundled defaults described in step 11.
+- `zk-3xplorer/pi-interactive-subagents@feat/cmux-subagents` — cmux-only
+  subagents and `pi-sp` launcher propagation. The commit verified while writing
+  this guide is `0823113`.
+- `zk-3xplorer/pi-config`, branch `feature/you-com-web-search` — You.com web
+  search plus this setup guide. The web-search implementation starts at commit
+  `cfb5248`; use the branch head for the latest guide corrections.
 
-Until these items are resolved, use the documented local-development paths only
-on the reference machine. A new machine cannot reproduce unpublished commits.
+Branch names are convenient while debugging but can move. For a byte-for-byte
+reproduction, substitute the recorded commit hashes or release tags after the
+branches are finalized.
+
+The four profile-specific agent definitions are not yet versioned. Exact
+reproduction still requires publishing sanitized copies or deliberately
+accepting the bundled defaults described in step 11.
 
 ## 1. Install prerequisites
 
@@ -119,14 +119,8 @@ paths in `settings.json` by using profile-local symlinks.
 
 ```bash
 mkdir -p "$(dirname "$PI_CONFIG_REPO")"
-git clone https://github.com/zk-3xplorer/pi-config.git "$PI_CONFIG_REPO"
-```
-
-For an exact reproduction, check out a tag or commit recorded by the original
-machine:
-
-```bash
-git -C "$PI_CONFIG_REPO" checkout <tag-or-commit>
+git clone --branch feature/you-com-web-search \
+  https://github.com/zk-3xplorer/pi-config.git "$PI_CONFIG_REPO"
 ```
 
 Real credentials do not belong in this repository.
@@ -284,18 +278,14 @@ Optional system tools used by `youtube-transcript` include `yt-dlp` and
 
 ## 9. Configure Git packages
 
-For a reproducible setup, use fetchable tags or commit hashes instead of
-floating branch heads. Do not continue with a local-only hash: verify each ref
-from another clone or with `git ls-remote` first.
-
-The subagents ref below must contain the cmux implementation; the current remote
-HEAD does not yet satisfy that requirement.
+During debugging, use the published feature branch. After stabilization, prefer
+a release tag or commit hash because branches can move.
 
 ```json
 {
   "packages": [
-    "git:github.com/obra/superpowers@<tag-or-commit>",
-    "git:github.com/zk-3xplorer/pi-interactive-subagents@<tag-or-commit>"
+    "git:github.com/obra/superpowers",
+    "git:github.com/zk-3xplorer/pi-interactive-subagents@feat/cmux-subagents"
   ],
   "lastChangelogVersion": "0.87.0",
   "theme": "dark",
@@ -327,8 +317,8 @@ pi-sp
 Alternatively, install packages explicitly:
 
 ```bash
-pi-sp install git:github.com/obra/superpowers@<tag-or-commit>
-pi-sp install git:github.com/zk-3xplorer/pi-interactive-subagents@<tag-or-commit>
+pi-sp install git:github.com/obra/superpowers
+pi-sp install git:github.com/zk-3xplorer/pi-interactive-subagents@feat/cmux-subagents
 ```
 
 Confirm package resolution:
@@ -431,17 +421,17 @@ pi-sp
 
 Configure credentials for the exact `pi-config` ref selected in step 3.
 
-For the You.com implementation in local commit `cfb5248` (which must first be
-published), use a private shell configuration or secret manager:
+For the You.com implementation on `feature/you-com-web-search`, use a private
+shell configuration or secret manager:
 
 ```zsh
 export YDC_API_KEY="<secret>"
 ```
 
 Alternatively, create its ignored local file from
-`extensions/web-search/auth.example.json`. Published `main` currently contains
-the prior Google search implementation and requires its documented Google
-credentials instead; `YDC_API_KEY` does not configure that version.
+`extensions/web-search/auth.example.json`. The repository's `main` branch still
+contains the prior Google search implementation and requires its documented
+Google credentials instead; `YDC_API_KEY` does not configure that version.
 
 Never commit:
 
@@ -509,7 +499,8 @@ when adopting a new release.
 
 ```bash
 git -C "$PI_CONFIG_REPO" fetch --all --tags
-git -C "$PI_CONFIG_REPO" checkout <new-tag-or-commit>
+git -C "$PI_CONFIG_REPO" checkout feature/you-com-web-search
+git -C "$PI_CONFIG_REPO" pull --ff-only
 ```
 
 Then reinstall dependencies if lockfiles changed and restart `pi-sp` or run
